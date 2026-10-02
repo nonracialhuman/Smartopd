@@ -1,0 +1,172 @@
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Priority {
+  EMERGENCY
+  URGENT
+  NORMAL
+}
+
+enum TokenStatus {
+  WAITING
+  CALLED
+  IN_CONSULT
+  TRANSFERRED_TO_LAB
+  COMPLETED
+  NO_SHOW
+  CANCELLED
+}
+
+enum DoctorStatus {
+  AVAILABLE
+  WITH_PATIENT
+  ON_BREAK
+  OFFLINE
+}
+
+enum BedType {
+  GENERAL
+  ICU
+  OXYGEN
+}
+
+enum BedStatus {
+  VACANT
+  OCCUPIED
+  CLEANING
+  RESERVED
+}
+
+enum StaffRole {
+  ADMIN
+  DOCTOR
+  RECEPTIONIST
+}
+
+model Department {
+  id                String   @id @default(uuid())
+  name              String
+  code              String   @unique
+  avgConsultMinutes Int      @default(8)
+  doctors           Doctor[]
+  tokens            Token[]
+  staff             StaffUser[]
+}
+
+model Doctor {
+  id             String       @id @default(uuid())
+  name           String
+  room           String
+  departmentId   String
+  department     Department   @relation(fields: [departmentId], references: [id])
+  status         DoctorStatus @default(AVAILABLE)
+  currentTokenId String?
+  tokens         Token[]
+  staff          StaffUser?
+}
+
+model Patient {
+  id     String  @id @default(uuid())
+  name   String
+  phone  String
+  age    Int?
+  email  String?
+  tokens Token[]
+
+  @@index([phone])
+}
+
+model Token {
+  id           String      @id @default(uuid())
+  tokenNumber  Int
+  serviceDate  String
+  patientId    String
+  patient      Patient     @relation(fields: [patientId], references: [id])
+  departmentId String
+  department   Department  @relation(fields: [departmentId], references: [id])
+  doctorId     String?
+  doctor       Doctor?     @relation(fields: [doctorId], references: [id])
+  priority     Priority    @default(NORMAL)
+  status       TokenStatus @default(WAITING)
+  checkedInAt  DateTime    @default(now())
+  calledAt     DateTime?
+  startedAt    DateTime?
+  completedAt  DateTime?
+  version      Int         @default(1)
+  missedCount  Int         @default(0)
+  notified2    Boolean     @default(false)
+  notified1    Boolean     @default(false)
+
+  @@unique([departmentId, serviceDate, tokenNumber])
+  @@index([departmentId, status])
+}
+
+model Ward {
+  id         String   @id @default(uuid())
+  name       String
+  type       BedType
+  totalBeds  Int
+  verifiedAt DateTime?
+  verifiedBy String?
+  beds       Bed[]
+}
+
+model Bed {
+  id          String    @id @default(uuid())
+  wardId      String
+  ward        Ward      @relation(fields: [wardId], references: [id])
+  bedNumber   String
+  status      BedStatus @default(VACANT)
+  patientName String?
+  version     Int       @default(1)
+  updatedAt   DateTime  @default(now())
+  updatedBy   String?
+
+  @@unique([wardId, bedNumber])
+}
+
+model StaffUser {
+  id           String      @id @default(uuid())
+  email        String      @unique
+  name         String
+  passwordHash String
+  role         StaffRole
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id])
+  doctorId     String?     @unique
+  doctor       Doctor?     @relation(fields: [doctorId], references: [id])
+}
+
+model AuditLog {
+  id       String   @id @default(uuid())
+  at       DateTime @default(now())
+  actor    String
+  action   String
+  entity   String
+  entityId String
+  before   Json?
+  after    Json?
+}
+
+model ProcessedCommand {
+  requestId String @id
+  command   String
+  result    Json
+}
+
+model OtpChallenge {
+  id        String    @id @default(uuid())
+  phone     String
+  code      String
+  expiresAt DateTime
+  usedAt    DateTime?
+  attempts  Int       @default(0)
+  createdAt DateTime  @default(now())
+}

@@ -1,0 +1,9 @@
+node_modules
+.next
+.pgdata
+.env
+.env.local
+*.log
+.pg.log
+apps/server/src/generated
+apps/web/review

@@ -1,0 +1,18 @@
+{
+  "name": "smartopd",
+  "private": true,
+  "version": "0.1.0",
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "db:local": "node scripts/local-pg.mjs",
+    "db:migrate": "npm run db:migrate -w @smartopd/server",
+    "db:seed": "npm run db:seed -w @smartopd/server",
+    "db:reset": "npm run db:reset -w @smartopd/server",
+    "build": "npm run build -w @smartopd/web",
+    "prod": "npm run build -w @smartopd/web && concurrently -n server,web -c cyan,magenta \"npm run start -w @smartopd/server\" \"npm run start -w @smartopd/web\"",
+    "dev": "concurrently -n server,web -c cyan,magenta \"npm run dev -w @smartopd/server\" \"npm run dev -w @smartopd/web\"",
+    "test": "npm test -w @smartopd/shared && npm test -w @smartopd/server",
+    "typecheck": "npm run typecheck -w @smartopd/shared && npm run typecheck -w @smartopd/server && npm run typecheck -w @smartopd/web"
+  },
+  "devDependencies": { "concurrently": "^9.1.0", "typescript": "^5.7.0", "embedded-postgres": "^18.4.0-beta.17" }
+}
